@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Cek Pembayaran
+{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_pemilik.html' %}
+{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Daftar Bukti Pembayaran</h2>
+
+{% for t in tagihan %}
+<div class="bg-white rounded-xl shadow p-4 mb-4">
+    <p><strong>Bulan:</strong> {{ t.Bulan }}</p>
+    <p><strong>Kamar ID:</strong> {{ t.KamarID }}</p>
+    <p><strong>Total Tagihan:</strong> {{ t.TotalTagihan }} IDR</p>
+    <p><strong>Status:</strong> {{ t.StatusPembayaran }}</p>
+
+    <img src="{{ t.BuktiBayarURL }}" alt="Bukti Bayar" class="w-40 rounded border mb-2">
+
+    <form action="{{ url_for('cek_pembayaran', tagihan_id=t.id) }}" method="POST">
+        <button type="submit" name="aksi" value="konfirmasi"
+            class="bg-green-500 text-white px-3 py-1 rounded">Konfirmasi</button>
+        <button type="submit" name="aksi" value="tolak"
+            class="bg-red-500 text-white px-3 py-1 rounded ml-2">Tolak</button>
+    </form>
+</div>
+{% endfor %}
+
+{% endblock %}

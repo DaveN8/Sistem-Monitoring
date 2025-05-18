@@ -1,0 +1,18 @@
+<div class="navbar">
+    <img class="logo-img" src="{{ url_for('static', filename='images/Smark.png') }}" />
+    <span class="hamburger">&#9776;</span> <!-- Hamburger Icon -->
+    <div class="navbar-right" id="navbarRight">
+        <span class="closebtn">&times;</span>
+        <a href="{{ url_for('dashboard_penghuni') }}">Dashboard</a>
+        <!-- Dropdown for News -->
+        <a href="{{ url_for('histori_penghuni') }}" class="hover:underline">Histori Daya</a>
+        <a href="{{ url_for('tagihan_penghuni') }}" class="hover:underline">Tagihan</a>
+        <div class="dropdown">
+            <a class="dropbtn" id="dropBtn">Account</a>
+            <div class="dropdown-content">
+                <a href="{{ url_for('profil') }}">Profile</a>
+                <a id="sign-out-btn" href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+</div>

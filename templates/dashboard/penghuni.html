@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Dashboard Penghuni
+{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_penghuni.html' %}
+{% endblock %}
+
+{% block content %}
+
+<div class="p-4 max-w-screen-xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4 text-center md:text-left">Dashboard Penghuni</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Info Kamar -->
+        <div class="p-4 bg-white rounded-xl shadow">
+            <h2 class="text-lg font-semibold mb-2">Informasi Kamar</h2>
+            <p><strong>Nomor Kamar:</strong> {{ kamar.NomorKamar }}</p>
+        </div>
+        <!-- Tagihan Terbaru -->
+        <div class="p-4 bg-white rounded-xl shadow">
+            <h2 class="text-lg font-semibold mb-2">Tagihan Terbaru</h2>
+            {% if tagihan %}
+            <p><strong>Bulan:</strong> {{ tagihan.Bulan }}</p>
+            <p><strong>Total:</strong> Rp {{ tagihan.TotalTagihan }}</p>
+            <p><strong>Status:</strong> {{ tagihan.StatusPembayaran }}</p>
+            {% else %}
+            <p>Belum ada tagihan.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="mt-6 bg-white rounded-xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-4 text-center md:text-left">Penggunaan Daya</h2>
+        <!-- Chart filter controls will be inserted here by JavaScript -->
+        <div class="w-full overflow-x-auto">
+            <div class="relative h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+                <canvas id="dayaChart" class="top-0 left-0 w-full h-full z-9998"
+                    data-labels='{{ histori | map(attribute="timestamp") | list | tojson }}'
+                    data-data='{{ histori | map(attribute="kWh") | list | tojson }}'>
+                </canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- External Script -->
+<script src="{{ url_for('static', filename='dayaChart.js') }}"></script>
+
+{% endblock %}

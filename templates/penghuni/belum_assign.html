@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Histori
+{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_notassign.html' %}
+{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="p-3 text-white {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }} rounded mb-4">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+{% endblock %}

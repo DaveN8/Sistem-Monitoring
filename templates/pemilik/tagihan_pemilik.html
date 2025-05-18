@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Kelola Tagihan
+{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_pemilik.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <h1 class="text-2xl font-bold mb-4">Daftar Tagihan Semua Kamar</h1>
+
+    <!-- Baris Tombol & Filter -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+
+        <!-- Tombol Generate -->
+        <form action="{{ url_for('tagihan_pemilik') }}" method="POST">
+            <button type="submit" name="aksi" value="generate_tagihan"
+                class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                Generate Tagihan
+            </button>
+        </form>
+
+        <!-- Filter Form -->
+        <form method="GET" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filter Kamar</label>
+                <select name="kamar" class="border rounded px-3 py-2 text-sm">
+                    <option value="">Semua Kamar</option>
+                    {% for k in kamar_options %}
+                    <option value="{{ k.id }}" {% if selected_kamar==k.id %}selected{% endif %}>Kamar {{ k.nomor }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filter Bulan</label>
+                <input type="month" name="bulan" value="{{ selected_bulan }}" class="border rounded px-3 py-2 text-sm">
+            </div>
+
+            <div>
+                <button type="submit"
+                    class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors text-sm">
+                    Terapkan Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-200">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-2 border">Nomor Kamar</th>
+                    <th class="p-2 border">Bulan</th>
+                    <th class="p-2 border">kWh Terpakai Melebihi Batas</th>
+                    <th class="p-2 border">Total (Rp)</th>
+                    <th class="p-2 border">Status</th>
+                    <th class="p-2 border">Bukti Bayar</th>
+                    <th class="p-2 border">Konfirmasi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tagihan_list %}
+                <tr class="border-b">
+                    <td class="p-2 border">{{ t.NomorKamar }}</td>
+                    <td class="p-2 border">{{ t.Bulan }}</td>
+                    <td class="p-2 border">{{ t.JumlahKWH }}</td>
+                    <td class="p-2 border">Rp {{ "{:,.0f}".format(t.TotalTagihan) }}</td>
+                    <td class="p-2 border">
+                        <span class="px-2 py-1 rounded text-white
+                        {% if t.StatusPembayaran == 'Sudah Bayar' %}
+                            bg-green-500
+                        {% elif t.StatusPembayaran == 'Ditolak' %}
+                            bg-red-500
+                        {% else %}
+                            bg-yellow-500
+                        {% endif %}
+                    ">
+                            {{ t.StatusPembayaran }}
+                        </span>
+                    </td>
+                    <td class="p-2 border">
+                        {% if t.BuktiBayarURL %}
+                        <button onclick="openModal('{{ t.BuktiBayarURL }}')" class="text-blue-600 hover:underline">
+                            Lihat Bukti
+                        </button>
+                        {% else %}
+                        <span class="text-gray-400 italic">Belum upload</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-2 border w-fit">
+                        {% if t.StatusPembayaran in ["Menunggu", "Ditolak"] %}
+                        <form method="post" action="{{ url_for('verifikasi_pembayaran', tagihan_id=t.id) }}"
+                            class="flex gap-2">
+                            <button type="submit" name="aksi" value="terima"
+                                class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm transition-colors">Terima</button>
+                            <button type="submit" name="aksi" value="tolak"
+                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm transition-colors">Tolak</button>
+                        </form>
+                        {% elif t.StatusPembayaran in ["Belum Dibayar"] %}
+                        <span class="text-gray-500 italic">Belum Bayar</span>
+                        {% else %}
+                        <span class="text-gray-500 italic">Sudah Diverifikasi</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50">
+    <div
+        class="relative max-w-sm w-full bg-white rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 scale-100">
+        <button onclick="closeModal()"
+            class="absolute top-2 right-2 text-gray-600 hover:text-red-500 text-2xl font-bold z-10">&times;</button>
+
+        <div class="overflow-auto max-h-[90vh] flex items-center justify-center p-4">
+            <img id="modalImage" src="" alt="Bukti Bayar"
+                class="rounded max-h-[80vh] object-contain transition-transform duration-200 ease-in-out hover:scale-105 cursor-zoom-in">
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(url) {
+        const modal = document.getElementById('modal');
+        const image = document.getElementById('modalImage');
+        image.src = url;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('modal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+</script>
+
+{% endblock %}

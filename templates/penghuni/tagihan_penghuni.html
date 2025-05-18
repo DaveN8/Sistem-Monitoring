@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Tagihan{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_penghuni.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="p-4 sm:p-6">
+    <h2 class="text-xl font-bold mb-4">Daftar Tagihan</h2>
+
+    <form method="GET" class="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
+        <label for="bulan" class="text-sm">Filter Bulan:</label>
+        <input type="month" name="bulan" id="bulan" value="{{ bulan_filter }}" class="border px-2 py-1 rounded w-full sm:w-auto">
+        <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Terapkan</button>
+    </form>
+
+    <div class="overflow-x-auto rounded shadow">
+        <table class="w-full bg-white text-sm">
+            <thead class="bg-gray-100 text-left">
+                <tr>
+                    <th class="p-2 border">Bulan</th>
+                    <th class="p-2 border">Jumlah kWh</th>
+                    <th class="p-2 border">Total (Rp)</th>
+                    <th class="p-2 border">Status</th>
+                    <th class="p-2 border">Bukti Bayar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tagihan %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-2 border">{{ t.Bulan }}</td>
+                    <td class="p-2 border">{{ t.JumlahKWH }}</td>
+                    <td class="p-2 border">{{ t.TotalTagihan }}</td>
+                    <td class="p-2">
+                        {% if t.StatusPembayaran == "Sudah Bayar" %}
+                        <span class="text-green-600 font-semibold">Sudah Bayar</span>
+                        {% else %}
+                            {% if t.BuktiBayarURL %}
+                            <span class="text-red-600 font-semibold">Belum Dikonfirmasi</span>
+                            {% else %}
+                            <span class="text-red-600 font-semibold">Belum Bayar</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="p-2 border text-center">
+                        {% if t.BuktiBayarURL %}
+                        <button onclick="openModal('{{ t.BuktiBayarURL }}')" class="text-blue-600 hover:underline">Lihat Bukti</button>
+                        {% else %}
+                        <a href="{{ url_for('upload_bukti', tagihan_id=t.id) }}" class="text-green-600 underline">Upload</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-4 flex flex-col sm:flex-row justify-between items-center text-sm gap-2">
+        {% if page > 1 %}
+        <a href="?page={{ page-1 }}{% if bulan_filter %}&bulan={{ bulan_filter }}{% endif %}" class="text-blue-600 hover:underline">Sebelumnya</a>
+        {% endif %}
+        <span>Halaman {{ page }} dari {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="?page={{ page+1 }}{% if bulan_filter %}&bulan={{ bulan_filter }}{% endif %}" class="text-blue-600 hover:underline">Selanjutnya</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white p-4 rounded shadow-lg relative max-w-6xl w-full max-h-screen overflow-auto">
+        <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-700 hover:text-red-600 text-2xl font-bold">&times;</button>
+        <img id="modalImage" src="" alt="Bukti Bayar" class="w-full h-auto rounded">
+    </div>
+</div>
+
+<script>
+    function openModal(url) {
+        const modal = document.getElementById('modal');
+        document.getElementById('modalImage').src = url;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('modal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+</script>
+{% endblock %}

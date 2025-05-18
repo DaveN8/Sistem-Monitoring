@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Kelola Kamar
+{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_pemilik.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <h1 class="text-2xl font-bold mb-4">Histori Pemakaian Daya</h1>
+
+    <!-- Form Filter -->
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div>
+            <label class="block font-medium mb-1">Filter Kamar</label>
+            <select name="kamar" class="w-full border rounded p-2">
+                <option value="">Semua Kamar</option>
+                {% for nomor in kamar_list %}
+                <option value="{{ nomor.id }}" {% if selected_kamar==nomor.id %}selected{% endif %}>Kamar {{ nomor.nomor
+                    }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block font-medium mb-1">Tanggal (yyyy-mm-dd)</label>
+            <input type="date" name="tanggal" value="{{ selected_date }}" class="w-full border rounded p-2">
+        </div>
+        <div>
+            <label class="block font-medium mb-1">Bulan (yyyy-mm)</label>
+            <input type="month" name="bulan" value="{{ selected_bulan }}" class="w-full border rounded p-2">
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Filter</button>
+        </div>
+    </form>
+
+    {% if ringkasan_kamar %}
+    <div class="mb-6 bg-gray-50 p-4 rounded shadow">
+        <h2 class="text-lg font-semibold mb-3">Ringkasan Penggunaan Energi</h2>
+        {% for kamar_id, r in ringkasan_kamar.items() %}
+        <div class="mb-2">
+            <span class="font-semibold">Kamar {{ r.nomor }}</span>:
+            <span>Total kWh: <span class="font-mono">{{ "%.6f"|format(r.total_kwh) }}</span></span>,
+            <span>Kelebihan kWh: <span class="font-mono text-red-600">{{ "%.6f"|format(r.total_kwh_over)
+                    }}</span></span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
+    <!-- Tabel Histori -->
+    {% if histori_data %}
+    <div class="overflow-x-auto">
+        <table class="w-full border rounded text-sm">
+            <thead class="bg-gray-100 text-center">
+                <tr>
+                    <th class="p-2 border">Nomor Kamar</th>
+                    <th class="p-2 border">kWh</th>
+                    <th class="p-2 border">kWh Melebihi Batas</th>
+                    <th class="p-2 border">Waktu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in histori_data %}
+                <tr class="text-center">
+                    <td class="p-2 border">Kamar {{ h.NomorKamar }}</td>
+                    <td class="p-2 border">{{ "%.6f"|format(h.kWh) }}</td>
+                    <td class="p-2 border">{{ "%.6f"|format(h.kWhOverLimit) }}</td>
+                    <td class="p-2 border">{{ h.Tanggal }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">Tidak ada data ditemukan.</p>
+    {% endif %}
+
+</div>
+
+
+
+<!-- Pagination -->
+<div class="mt-6 flex justify-between items-center">
+    {% if current_page > 1 %}
+    <a href="?page={{ current_page - 1 }}
+        {% if selected_kamar %}&kamar={{ selected_kamar }}{% endif %}
+        {% if selected_date %}&tanggal={{ selected_date }}{% endif %}
+        {% if selected_bulan %}&bulan={{ selected_bulan }}{% endif %}" class="text-blue-600 hover:underline">←
+        Sebelumnya</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+
+    <span class="text-sm">Halaman {{ current_page }} dari {{ total_pages }}</span>
+
+    {% if current_page < total_pages %} <a href="?page={{ current_page + 1 }}
+        {% if selected_kamar %}&kamar={{ selected_kamar }}{% endif %}
+        {% if selected_date %}&tanggal={{ selected_date }}{% endif %}
+        {% if selected_bulan %}&bulan={{ selected_bulan }}{% endif %}" class="text-blue-600 hover:underline">
+        Selanjutnya →</a>
+        {% else %}
+        <span></span>
+        {% endif %}
+</div>
+
+{% endblock %}

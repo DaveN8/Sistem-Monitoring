@@ -8,8 +8,8 @@ import { createUserWithEmailAndPassword,
 
 
 /* == UI - Elements == */
-const signInWithGoogleButtonEl = document.getElementById("sign-in-with-google-btn")
-const signUpWithGoogleButtonEl = document.getElementById("sign-up-with-google-btn")
+// const signInWithGoogleButtonEl = document.getElementById("sign-in-with-google-btn")
+// const signUpWithGoogleButtonEl = document.getElementById("sign-up-with-google-btn")
 const emailInputEl = document.getElementById("email-input")
 const passwordInputEl = document.getElementById("password-input")
 const signInButtonEl = document.getElementById("sign-in-btn")
@@ -19,13 +19,13 @@ const forgotPasswordButtonEl = document.getElementById("forgot-password-btn")
 
 const errorMsgEmail = document.getElementById("email-error-message")
 const errorMsgPassword = document.getElementById("password-error-message")
-const errorMsgGoogleSignIn = document.getElementById("google-signin-error-message")
+// const errorMsgGoogleSignIn = document.getElementById("google-signin-error-message")
 
 
 
 /* == UI - Event Listeners == */
-if (signInWithGoogleButtonEl && signInButtonEl) {
-    signInWithGoogleButtonEl.addEventListener("click", authSignInWithGoogle)
+if (signInButtonEl) {
+    // signInWithGoogleButtonEl.addEventListener("click", authSignInWithGoogle)
     signInButtonEl.addEventListener("click", authSignInWithEmail)
 }
 
@@ -33,9 +33,9 @@ if (createAccountButtonEl) {
     createAccountButtonEl.addEventListener("click", authCreateAccountWithEmail)
 }
 
-if (signUpWithGoogleButtonEl) {
-    signUpWithGoogleButtonEl.addEventListener("click", authSignUpWithGoogle)
-}
+// if (signUpWithGoogleButtonEl) {
+//     signUpWithGoogleButtonEl.addEventListener("click", authSignUpWithGoogle)
+// }
 
 if (forgotPasswordButtonEl) {
     forgotPasswordButtonEl.addEventListener("click", resetPassword)
@@ -48,64 +48,64 @@ if (forgotPasswordButtonEl) {
 
 /* = Functions - Firebase - Authentication = */
 
-// Function to sign in with Google authentication
-async function authSignInWithGoogle() {
-    // Configure Google Auth provider with custom parameters
-    provider.setCustomParameters({
-        'prompt': 'select_account'
-    });
+// // Function to sign in with Google authentication
+// async function authSignInWithGoogle() {
+//     // Configure Google Auth provider with custom parameters
+//     provider.setCustomParameters({
+//         'prompt': 'select_account'
+//     });
 
-    try {
-        // Attempt to sign in with a popup and retrieve user data
-        const result = await signInWithPopup(auth, provider);
+//     try {
+//         // Attempt to sign in with a popup and retrieve user data
+//         const result = await signInWithPopup(auth, provider);
 
-        // Check if the result or user object is undefined or null
-        if (!result || !result.user) {
-            throw new Error('Authentication failed: No user data returned.');
-        }
+//         // Check if the result or user object is undefined or null
+//         if (!result || !result.user) {
+//             throw new Error('Authentication failed: No user data returned.');
+//         }
 
-        const user = result.user;
-        const email = user.email;
+//         const user = result.user;
+//         const email = user.email;
 
-        // Ensure the email is available in the user data
-        if (!email) {
-            throw new Error('Authentication failed: No email address returned.');
-        }
+//         // Ensure the email is available in the user data
+//         if (!email) {
+//             throw new Error('Authentication failed: No email address returned.');
+//         }
 
-        // Retrieve ID token for the user
-        const idToken = await user.getIdToken();
+//         // Retrieve ID token for the user
+//         const idToken = await user.getIdToken();
 
-        // Log in the user using the obtained ID token
-        loginUser(user, idToken);
+//         // Log in the user using the obtained ID token
+//         loginUser(user, idToken);
 
-    } catch (error) {
-        // Handle errors by logging and potentially updating the UI
-        handleLogging(error, 'Error during sign-in with Google');
-    }
-}
+//     } catch (error) {
+//         // Handle errors by logging and potentially updating the UI
+//         handleLogging(error, 'Error during sign-in with Google');
+//     }
+// }
 
 
 
-// Function to create new account with Google auth - will also sign in existing users
-async function authSignUpWithGoogle() {
-    provider.setCustomParameters({
-        'prompt': 'select_account'
-    });
+// // Function to create new account with Google auth - will also sign in existing users
+// async function authSignUpWithGoogle() {
+//     provider.setCustomParameters({
+//         'prompt': 'select_account'
+//     });
 
-    try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        const email = user.email;
+//     try {
+//         const result = await signInWithPopup(auth, provider);
+//         const user = result.user;
+//         const email = user.email;
 
-        // Sign in user
-        const idToken = await user.getIdToken();
-        loginUser(user, idToken);
-    } catch (error) {
-        // The AuthCredential type that was used or other errors.
-        console.error("Error during Google signup: ", error.message);
-        // Handle error appropriately here, e.g., updating UI to show an error message
-    }
-}
+//         // Sign in user
+//         const idToken = await user.getIdToken();
+//         loginUser(user, idToken);
+//     } catch (error) {
+//         // The AuthCredential type that was used or other errors.
+//         console.error("Error during Google signup: ", error.message);
+//         // Handle error appropriately here, e.g., updating UI to show an error message
+//     }
+// }
 
 
 

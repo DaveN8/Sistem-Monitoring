@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Pemilik{% endblock %}
+
+{% block navbar %}
+{% include 'navbar_pemilik.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto mt-10 px-4">
+    <h1 class="text-3xl font-bold mb-6">Dashboard Pemilik</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for kamar in kamar_data %}
+        <div class="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
+
+            <!-- Informasi Kamar & Penghuni -->
+            <div class="space-y-1">
+                <h2 class="text-xl font-semibold text-gray-800">Kamar {{ kamar.NomorKamar }}</h2>
+                <p class="text-gray-600 text-sm">Tarif/kWh: <span class="font-medium">Rp {{ kamar.TarifPerKWH }}</span>
+                </p>
+
+                {% set penghuni_kamar = penghuni_list | selectattr('uid', 'equalto', kamar.UserID) | list %}
+                {% if penghuni_kamar %}
+                {% set u = penghuni_kamar[0] %}
+                <p class="text-sm text-gray-700">Penghuni: <span class="font-medium">{{ u.nama }}</span> - {{ u.email }}
+                </p>
+                {% else %}
+                <p class="text-sm text-gray-500 italic">Penghuni: Belum di-assign</p>
+                {% endif %}
+            </div>
+
+            <!-- Status Relay -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="font-semibold text-gray-700 mb-2">Status Relay</h3>
+                <div class="flex gap-4 text-sm">
+                    <div class="flex items-center gap-1">
+                        <span class="text-gray-600">Relay 1:</span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium 
+              {% if kamar.relay1_status %} bg-green-100 text-green-700 {% else %} bg-red-100 text-red-700 {% endif %}">
+                            {% if kamar.relay1_status %} ON {% else %} OFF {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="text-gray-600">Relay 2:</span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium 
+              {% if kamar.relay2_status %} bg-green-100 text-green-700 {% else %} bg-red-100 text-red-700 {% endif %}">
+                            {% if kamar.relay2_status %} ON {% else %} OFF {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tagihan -->
+            {% if kamar.tagihan %}
+            <div class="text-sm bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="font-semibold text-gray-700 mb-1">Tagihan Terakhir</h3>
+                <p><span class="text-gray-600">Bulan:</span> {{ kamar.tagihan.Bulan }}</p>
+                <p><span class="text-gray-600">Watt:</span> {{ kamar.tagihan.JumlahWattTerpakai }}</p>
+                <p><span class="text-gray-600">Total:</span> Rp {{ kamar.tagihan.TotalTagihan }}</p>
+                <p><span class="text-gray-600">Status:</span> {{ kamar.tagihan.StatusPembayaran }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Form Kontrol Relay -->
+            <form method="POST" action="{{ url_for('relay_control') }}" class="bg-white border-t pt-4">
+                <input type="hidden" name="kamar_id" value="{{ kamar.id }}">
+                <h3 class="text-gray-800 font-semibold mb-2">Kontrol Relay</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <!-- Relay 1 -->
+                    <div>
+                        <label for="relay1_status" class="block text-gray-600 mb-1">Relay 1</label>
+                        <select name="relay1_status" id="relay1_status"
+                            class="w-full border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500">
+                            <option value="on" {% if kamar.relay1_status %}selected{% endif %}>ON</option>
+                            <option value="off" {% if not kamar.relay1_status %}selected{% endif %}>OFF</option>
+                        </select>
+                    </div>
+                    <!-- Relay 2 -->
+                    <div>
+                        <label for="relay2_status" class="block text-gray-600 mb-1">Relay 2</label>
+                        <select name="relay2_status" id="relay2_status"
+                            class="w-full border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500">
+                            <option value="on" {% if kamar.relay2_status %}selected{% endif %}>ON</option>
+                            <option value="off" {% if not kamar.relay2_status %}selected{% endif %}>OFF</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4 text-right">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
