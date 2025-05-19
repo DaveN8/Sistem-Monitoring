@@ -417,23 +417,23 @@ def delete_kamar(id):
 def relay_control():
     kamar_id = request.form.get("kamar_id")
     relay1_status = request.form.get("relay1_status")
-    relay2_status = request.form.get("relay2_status")
 
-    # Konversi nilai "on"/"off" menjadi True/False
-    relay1_bool = True if relay1_status == "on" else False
-    relay2_bool = True if relay2_status == "on" else False
+    # Konversi dari "on"/"off" ke boolean
+    relay1_bool = relay1_status == "on"
 
-    # Update ke Firestore
     kamar_ref = db.collection("kamar").document(kamar_id)
 
-    # Ambil data kamar untuk NomorKamar
+    # Ambil data kamar untuk flash message
     kamar_data = kamar_ref.get().to_dict()
     nomor_kamar = kamar_data.get("NomorKamar", "Tidak diketahui")
 
-    # Update status relay
-    kamar_ref.update({"relay1_status": relay1_bool, "relay2_status": relay2_bool})
+    # Update hanya relay1_status
+    kamar_ref.update({"relay1_status": relay1_bool})
 
-    flash(f"Status relay Kamar {nomor_kamar} diperbarui.", "success")
+    flash(
+        f"Status relay Kamar {nomor_kamar} diperbarui menjadi {'ON' if relay1_bool else 'OFF'}.",
+        "success",
+    )
     return redirect(url_for("dashboard_pemilik"))
 
 
