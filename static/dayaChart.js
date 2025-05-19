@@ -1,419 +1,170 @@
-// Enhanced dayaChart.js with Month and Week Filter Dropdowns
 document.addEventListener('DOMContentLoaded', () => {
-    // Getting data from the HTML data attributes
     const chartElement = document.getElementById('dayaChart');
-    
-    // Parse the data from data attributes
+    if (!chartElement) return;
+
     const rawLabels = JSON.parse(chartElement.dataset.labels || '[]');
     const rawData = JSON.parse(chartElement.dataset.data || '[]');
-    
-    // Store the original data for filtering
-    const originalData = {
-        labels: [...rawLabels],
-        data: [...rawData]
-    };
-    
-    // Format dates for better display and store data by month and week
+
+    const days = {};
     const months = {};
-    const formattedLabels = [];
-    
-    rawLabels.forEach((dateStr, index) => {
+
+    rawLabels.forEach((dateStr, i) => {
         const date = new Date(dateStr);
-        
-        // Format the label
-        const formatted = {
-            full: dateStr,
-            day: new Intl.DateTimeFormat('id', { weekday: 'short' }).format(date),
-            date: date.getDate(),
-            time: new Intl.DateTimeFormat('id', { hour: '2-digit', minute: '2-digit' }).format(date),
-            // Store year and month information for filtering
-            year: date.getFullYear(),
-            month: date.getMonth(),
-            // Calculate the week number within the month (1-5)
-            weekInMonth: Math.ceil(date.getDate() / 7)
-        };
-        
-        formattedLabels.push(formatted);
-        
-        // Create month and week structure for filters
-        const monthKey = `${formatted.year}-${formatted.month}`;
+        const y = date.getFullYear();
+        const m = date.getMonth() + 1;
+        const d = date.getDate();
+        const weekInMonth = Math.ceil(d / 7);
+
+        const dayKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+        const weekKey = `W${weekInMonth}`;
+
         if (!months[monthKey]) {
-            const monthName = new Intl.DateTimeFormat('id', { month: 'long', year: 'numeric' }).format(date);
             months[monthKey] = {
-                name: monthName,
+                name: new Intl.DateTimeFormat('id', { month: 'long', year: 'numeric' }).format(date),
                 weeks: {},
-                allData: { labels: [], data: [] }
+                daily: {}
             };
         }
-        
-        const weekKey = formatted.weekInMonth;
+
         if (!months[monthKey].weeks[weekKey]) {
-            months[monthKey].weeks[weekKey] = {
-                labels: [],
-                data: []
-            };
+            months[monthKey].weeks[weekKey] = { total: 0 };
         }
-        
-        // Add data to appropriate month and week
-        months[monthKey].weeks[weekKey].labels.push(dateStr);
-        months[monthKey].weeks[weekKey].data.push(rawData[index]);
-        
-        // Also add to the "all data for this month" collection
-        months[monthKey].allData.labels.push(dateStr);
-        months[monthKey].allData.data.push(rawData[index]);
+
+        if (!months[monthKey].daily[dayKey]) {
+            months[monthKey].daily[dayKey] = 0;
+        }
+
+        months[monthKey].weeks[weekKey].total += rawData[i];
+        months[monthKey].daily[dayKey] += rawData[i];
+        days[dayKey] = months[monthKey].daily[dayKey];
     });
-    
+
     const ctx = chartElement.getContext('2d');
-    
-    // Create the chart
     const chart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: formattedLabels.map(l => `${l.day}, ${l.date} - ${l.time}`),
+            labels: [],
             datasets: [{
-                label: 'Daya (kWh)',
-                data: rawData,
+                label: 'Penggunaan kWh',
+                data: [],
+                backgroundColor: 'rgba(34, 197, 94, 0.4)',
                 borderColor: 'rgb(34, 197, 94)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                tension: 0.4,
-                fill: true,
-                borderWidth: 2,
-                pointRadius: function(context) {
-                    // Show points only on larger screens or when hovered
-                    return window.innerWidth < 640 ? 2 : 4;
-                },
-                pointHoverRadius: 6,
-                pointBackgroundColor: 'rgb(34, 197, 94)'
+                borderWidth: 1
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            onResize: function(chart, size) {
-                // Update point size when resizing
-                chart.data.datasets[0].pointRadius = size.width < 640 ? 2 : 4;
-            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: {
-                        drawBorder: false,
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    },
-                    ticks: {
-                        font: {
-                            size: function() {
-                                return window.innerWidth < 640 ? 10 : 12;
-                            }
-                        },
-                        callback: function(value) {
-                            // Format the y-axis labels
-                            return value + ' W';
-                        }
-                    },
                     title: {
                         display: true,
-                        text: 'Daya (kWh)',
-                        font: {
-                            size: function() {
-                                return window.innerWidth < 640 ? 12 : 14;
-                            },
-                            weight: 'bold'
-                        }
+                        text: 'kWh'
                     }
                 },
                 x: {
-                    grid: {
-                        display: false
-                    },
                     ticks: {
-                        maxRotation: function() {
-                            return window.innerWidth < 640 ? 45 : 30;
-                        },
-                        minRotation: 0,
-                        autoSkip: true,
-                        maxTicksLimit: function() {
-                            // Show fewer ticks on small screens
-                            return window.innerWidth < 640 ? 4 : 7;
-                        },
-                        font: {
-                            size: function() {
-                                return window.innerWidth < 640 ? 8 : 10;
-                            }
-                        },
-                        callback: function(val, index) {
-                            // Simplify labels on small screens
-                            const item = formattedLabels[index];
-                            if (!item) return '';
-                            
-                            if (window.innerWidth < 640) {
-                                return `${item.day} ${item.time}`;
-                            }
-                            return `${item.day}, ${item.date} - ${item.time}`;
-                        }
+                        maxRotation: 45,
+                        autoSkip: false
                     }
                 }
             },
             plugins: {
-                legend: {
-                    display: true,
-                    position: function() {
-                        return window.innerWidth < 640 ? 'bottom' : 'top';
-                    },
-                    labels: {
-                        boxWidth: function() {
-                            return window.innerWidth < 640 ? 12 : 40;
-                        },
-                        font: {
-                            size: function() {
-                                return window.innerWidth < 640 ? 10 : 12;
-                            }
-                        }
-                    }
-                },
                 tooltip: {
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    padding: 10,
-                    cornerRadius: 4,
-                    titleFont: {
-                        size: function() {
-                            return window.innerWidth < 640 ? 12 : 14;
-                        }
-                    },
-                    bodyFont: {
-                        size: function() {
-                            return window.innerWidth < 640 ? 11 : 13;
-                        }
-                    },
                     callbacks: {
-                        title: function(tooltipItems) {
-                            const index = tooltipItems[0].dataIndex;
-                            const fullDate = formattedLabels[index]?.full;
-                            if (!fullDate) return '';
-                            
-                            const date = new Date(fullDate);
-                            
-                            return new Intl.DateTimeFormat('id', { 
-                                weekday: 'long', 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            }).format(date);
-                        },
-                        label: function(context) {
-                            return `Penggunaan: ${context.parsed.y} kWh`;
+                        label: function (context) {
+                            return `Penggunaan: ${context.parsed.y.toFixed(3)} kWh`;
                         }
                     }
                 }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
             }
         }
     });
-    
-    // Function to update chart data
-    function updateChart(labels, data) {
-        // Clear existing formatted labels
-        formattedLabels.length = 0;
-        
-        // Update the formatted labels
-        labels.forEach(dateStr => {
-            const date = new Date(dateStr);
-            formattedLabels.push({
-                full: dateStr,
-                day: new Intl.DateTimeFormat('id', { weekday: 'short' }).format(date),
-                date: date.getDate(),
-                time: new Intl.DateTimeFormat('id', { hour: '2-digit', minute: '2-digit' }).format(date)
+
+    // Filter UI
+    const controls = document.createElement('div');
+    controls.className = 'flex flex-wrap justify-end gap-4 mb-4';
+
+    const monthSelect = document.createElement('select');
+    monthSelect.className = 'px-3 py-1 rounded border';
+    monthSelect.innerHTML = `<option value="">Semua</option>`;
+    Object.entries(months).forEach(([key, val]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = val.name;
+        monthSelect.appendChild(opt);
+    });
+
+    const weekSelect = document.createElement('select');
+    weekSelect.className = 'px-3 py-1 rounded border';
+    weekSelect.disabled = true;
+    controls.appendChild(monthSelect);
+    controls.appendChild(weekSelect);
+
+    chartElement.closest('.mt-6').prepend(controls);
+
+    monthSelect.addEventListener('change', () => {
+        const monthKey = monthSelect.value;
+        weekSelect.innerHTML = '';
+        weekSelect.disabled = !monthKey;
+
+        if (monthKey) {
+            const weekKeys = Object.keys(months[monthKey].weeks).sort();
+            weekSelect.innerHTML = `<option value="all">Semua Minggu</option>`;
+            weekKeys.forEach(week => {
+                const opt = document.createElement('option');
+                opt.value = week;
+                opt.textContent = `Minggu ${week.replace('W', '')}`;
+                weekSelect.appendChild(opt);
             });
-        });
-        
-        // Update chart data
-        chart.data.labels = formattedLabels.map(l => `${l.day}, ${l.date} - ${l.time}`);
-        chart.data.datasets[0].data = data;
-        
-        // Update the chart
-        chart.update();
-    }
-    
-    // Function to apply filter based on month and week
-    function applyFilter(monthKey, weekKey = null) {
-        if (!monthKey) {
-            // Show all data if no month selected
-            updateChart(originalData.labels, originalData.data);
-            return;
-        }
-        
-        const monthData = months[monthKey];
-        if (!monthData) {
-            console.error('Month data not found:', monthKey);
-            return;
-        }
-        
-        if (weekKey === null || weekKey === 'all') {
-            // Show all data for the selected month
-            updateChart(monthData.allData.labels, monthData.allData.data);
+            updateChartWithWeek(monthKey, 'all');
         } else {
-            // Show data for the specific week in the selected month
-            const weekData = monthData.weeks[weekKey];
-            if (weekData) {
-                updateChart(weekData.labels, weekData.data);
-            } else {
-                console.error('Week data not found:', weekKey);
-            }
+            const lastWeekMonth = Object.keys(months).slice(-1)[0];
+            const lastWeekData = Object.entries(months[lastWeekMonth].daily).slice(-7);
+            const labels = lastWeekData.map(([k]) => k);
+            const data = lastWeekData.map(([, v]) => v);
+            updateChart(labels, data);
         }
-    }
-    
-    // Create filter controls
-    function createFilterControls() {
-        // Create filter container
-        const filterContainer = document.createElement('div');
-        filterContainer.className = 'mb-6';
-        
-        // Create filters row for side-by-side arrangement
-        const filtersRow = document.createElement('div');
-        filtersRow.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
-        filterContainer.appendChild(filtersRow);
-        
-        // Create month filter column
-        const monthFilterCol = document.createElement('div');
-        monthFilterCol.className = 'flex items-center';
-        
-        const monthLabel = document.createElement('span');
-        monthLabel.className = 'text-sm font-medium mr-2';
-        monthLabel.textContent = 'Bulan:';
-        monthFilterCol.appendChild(monthLabel);
-        
-        // Create month select
-        const monthSelect = document.createElement('select');
-        monthSelect.className = 'flex-grow px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500';
-        
-        // Add option for all data
-        const allOption = document.createElement('option');
-        allOption.value = '';
-        allOption.textContent = 'Semua Data';
-        monthSelect.appendChild(allOption);
-        
-        // Sort months by date (newest first)
-        const sortedMonthKeys = Object.keys(months).sort().reverse();
-        
-        // Add month options
-        sortedMonthKeys.forEach(monthKey => {
-            const option = document.createElement('option');
-            option.value = monthKey;
-            option.textContent = months[monthKey].name;
-            monthSelect.appendChild(option);
-        });
-        
-        monthFilterCol.appendChild(monthSelect);
-        filtersRow.appendChild(monthFilterCol);
-        
-        // Create week filter column
-        const weekFilterCol = document.createElement('div');
-        weekFilterCol.className = 'flex items-center';
-        
-        const weekLabel = document.createElement('span');
-        weekLabel.className = 'text-sm font-medium mr-2';
-        weekLabel.textContent = 'Minggu:';
-        weekFilterCol.appendChild(weekLabel);
-        
-        // Create week select dropdown
-        const weekSelect = document.createElement('select');
-        weekSelect.className = 'flex-grow px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500';
-        weekFilterCol.appendChild(weekSelect);
-        
-        filtersRow.appendChild(weekFilterCol);
-        
-        // Initially disable week filter
-        weekSelect.disabled = true;
-        
-        // Function to update week options based on selected month
-        function updateWeekOptions(monthKey) {
-            // Clear previous options
-            weekSelect.innerHTML = '';
-            
-            if (!monthKey) {
-                weekSelect.disabled = true;
-                return;
-            }
-            
-            const monthData = months[monthKey];
-            if (!monthData) {
-                weekSelect.disabled = true;
-                return;
-            }
-            
-            // Enable the week select
-            weekSelect.disabled = false;
-            
-            // Create "All Weeks" option
-            const allWeeksOption = document.createElement('option');
-            allWeeksOption.value = 'all';
-            allWeeksOption.textContent = 'Semua Minggu';
-            weekSelect.appendChild(allWeeksOption);
-            
-            // Create options for each week
-            const weekKeys = Object.keys(monthData.weeks).sort((a, b) => parseInt(a) - parseInt(b));
-            
-            weekKeys.forEach(weekKey => {
-                const option = document.createElement('option');
-                option.value = weekKey;
-                option.textContent = `Minggu ${weekKey}`;
-                weekSelect.appendChild(option);
-            });
-            
-            // Set default to "All Weeks"
-            weekSelect.value = 'all';
-        }
-        
-        // Handle month select change
-        monthSelect.addEventListener('change', () => {
-            const monthKey = monthSelect.value;
-            
-            if (!monthKey) {
-                // Show all data
-                applyFilter(null);
-                updateWeekOptions(null);
-            } else {
-                // Update week options and show all data for the selected month
-                updateWeekOptions(monthKey);
-                applyFilter(monthKey, 'all');
-            }
-        });
-        
-        // Handle week select change
-        weekSelect.addEventListener('change', () => {
-            const monthKey = monthSelect.value;
-            const weekKey = weekSelect.value;
-            
-            applyFilter(monthKey, weekKey);
-        });
-        
-        // Insert filter controls before the chart
-        const chartParent = chartElement.parentElement;
-        chartParent.parentElement.insertBefore(filterContainer, chartParent);
-        
-        // Initialize with the most recent month if available
-        if (sortedMonthKeys.length > 0) {
-            const latestMonthKey = sortedMonthKeys[0];
-            monthSelect.value = latestMonthKey;
-            updateWeekOptions(latestMonthKey);
-            applyFilter(latestMonthKey, 'all');
-        }
-    }
-    
-    // Create and initialize the filter controls
-    createFilterControls();
-    
-    // Update chart on window resize for responsive behavior
-    window.addEventListener('resize', () => {
-        chart.update();
     });
+
+    weekSelect.addEventListener('change', () => {
+        updateChartWithWeek(monthSelect.value, weekSelect.value);
+    });
+
+    function updateChart(labels, data) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+    }
+
+    function updateChartWithWeek(monthKey, weekKey) {
+        const month = months[monthKey];
+        if (!month) return;
+
+        if (weekKey === 'all') {
+            const labels = [];
+            const data = [];
+
+            Object.entries(month.weeks).forEach(([key, val]) => {
+                labels.push(`Minggu ${key.replace('W', '')}`);
+                data.push(Number(val.total.toFixed(3)));
+            });
+            updateChart(labels, data);
+        } else {
+            const dayData = Object.entries(month.daily).filter(([dateStr]) => {
+                const d = new Date(dateStr);
+                return Math.ceil(d.getDate() / 7) == weekKey.replace('W', '');
+            });
+            const labels = dayData.map(([d]) => d);
+            const data = dayData.map(([, v]) => Number(v.toFixed(3)));
+            updateChart(labels, data);
+        }
+    }
+
+    // Init: tampilkan minggu terakhir
+    const recentMonthKey = Object.keys(months).slice(-1)[0];
+    const recentDays = Object.entries(months[recentMonthKey].daily).slice(-7);
+    updateChart(recentDays.map(([k]) => k), recentDays.map(([, v]) => v));
 });

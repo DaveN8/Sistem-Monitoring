@@ -39,6 +39,8 @@ Dashboard Penghuni
                     data-labels='{{ histori | map(attribute="timestamp") | list | tojson }}'
                     data-data='{{ histori | map(attribute="kWh") | list | tojson }}'>
                 </canvas>
+                <div class="mt-6 bg-white rounded-xl shadow p-4">
+                </div>
             </div>
         </div>
     </div>
