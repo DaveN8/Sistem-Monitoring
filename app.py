@@ -24,6 +24,8 @@ import random
 import math
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
+from collections import defaultdict
+from dateutil.relativedelta import relativedelta
 
 load_dotenv()
 
@@ -464,7 +466,7 @@ def assign_penghuni(id):
 
 
 ### Tagihan
-def buat_tagihan_bulanan():
+# def buat_tagihan_bulanan():
     now = datetime.now()
     bulan_str = now.strftime("%Y-%m")
 
@@ -488,7 +490,7 @@ def buat_tagihan_bulanan():
                 watt = data.get(
                     "JumlahWatt", 0
                 )  # Perhatikan field-nya: JumlahWatt, bukan Watt
-                total_kwh += (watt / 1000) * (1 / 3600)
+                total_kwh += (watt / 1000) * (3 / 3600)
 
         total_kwh = round(total_kwh, 3)
 
@@ -508,13 +510,66 @@ def buat_tagihan_bulanan():
                     {
                         "KamarID": kamar_id,
                         "Bulan": bulan_str,
-                        "JumlahkWhTerpakai": pemakaian_berlebih,
+                        "JumlahKWH": pemakaian_berlebih,
                         "TotalTagihan": total_tagihan,
                         "StatusPembayaran": "Menunggu",
                         "Timestamp": datetime.now(),
                     }
                 )
                 tagihan_terbuat += 1
+
+    return tagihan_terbuat
+
+def buat_tagihan_bulanan():
+    tagihan_terbuat = 0
+    now = datetime.now()
+
+    kamar_docs = db.collection("kamar").stream()
+
+    for kamar in kamar_docs:
+        kamar_data = kamar.to_dict()
+        kamar_id = kamar.id
+        batas_kwh = kamar_data.get("BatasKWH", 0)
+        tarif = kamar_data.get("TarifPerKWH", 1400)
+
+        # Ambil semua histori pemakaian daya listrik untuk kamar ini
+        histori_ref = db.collection("data_daya").where("KamarID", "==", kamar_id).stream()
+
+        # Kelompokkan berdasarkan bulan: "2025-05", "2025-06", dll
+        pemakaian_per_bulan = defaultdict(float)
+
+        for doc in histori_ref:
+            data = doc.to_dict()
+            ts = data.get("Timestamp")
+            if ts:
+                bulan_str = ts.strftime("%Y-%m")
+                watt = data.get("JumlahWatt", 0)
+                kwh = (watt / 1000) * (3 / 3600)  # interval 3 detik
+                pemakaian_per_bulan[bulan_str] += kwh
+
+        # Ambil semua bulan yang sudah ada tagihannya
+        existing_tagihan = db.collection("tagihan").where("KamarID", "==", kamar_id).stream()
+        bulan_tertagih = {doc.to_dict().get("Bulan") for doc in existing_tagihan}
+
+        for bulan, total_kwh in pemakaian_per_bulan.items():
+            if bulan not in bulan_tertagih:
+                total_kwh = round(total_kwh, 3)
+
+                if total_kwh > batas_kwh:
+                    kelebihan = round(total_kwh - batas_kwh, 3)
+                    total_tagihan = round(kelebihan * tarif, 2)
+
+                    # Hanya buat tagihan jika > 0
+                    if total_tagihan > 0:
+                        db.collection("tagihan").add({
+                            "KamarID": kamar_id,
+                            "Bulan": bulan,
+                            "JumlahKWH": kelebihan,
+                            "TotalTagihan": total_tagihan,
+                            "StatusPembayaran": "Belum Dibayar",
+                            "Timestamp": datetime.now(),
+                        })
+                        tagihan_terbuat += 1
 
     return tagihan_terbuat
 
@@ -682,7 +737,7 @@ def histori_daya():
 
         kamar_id = data.get("KamarID")
         watt = data.get("JumlahWatt", 0)
-        kwh = round((watt / 1000) * (1 / 3600), 6)
+        kwh = round((watt / 1000) * (3 / 3600), 6)
 
         kamar_info = kamar_dict.get(
             kamar_id, {"nomor": "Tidak diketahui", "batas_kwh": 0}
@@ -885,14 +940,14 @@ def histori_penghuni():
     daya_all = [doc.to_dict() for doc in daya_docs]
 
     # Hitung total kWh bulan ini
-    total_kwh = round(sum([d.get("JumlahWatt", 0) for d in daya_all]) / 60000, 6)
+    total_kwh = round(sum([d.get("JumlahWatt", 0) for d in daya_all]) / 1200000, 6)
 
     # Pagination
     total_pages = (len(daya_all) + 14) // 15
     daya = daya_all[(page - 1) * 15 : page * 15]
 
     for data in daya:
-        data["kWh"] = round(data.get("JumlahWatt", 0) / 60000, 6)
+        data["kWh"] = round(data.get("JumlahWatt", 0) / 1200000, 6)
 
     return render_template(
         "penghuni/histori_penghuni.html",
@@ -906,62 +961,36 @@ def histori_penghuni():
 
 
 ### Dummy
-@app.route("/dev/dummydata")
+@app.route("/dev/dummydata", methods=["GET"])
 def generate_dummy_data():
-    kamar_ids = ["6cAqsZboaQ1giiSqeQ4J", "t7jqaBpRQ9S3QgS1DkKJ"]  # Kamar 1  # Kamar 2
-    jakarta_tz = pytz.timezone("Asia/Jakarta")
-    now = datetime.now(jakarta_tz)
+    kamar_id = "yATSumC44Zn9tScyi1rW"  # Bisa diganti
+    watt_besar = 16000000  # 10 kWh jika interval 3 detik
+    # http://127.0.0.1:5000/dev/dummydata?tanggal=2025-06-01
 
-    # 1. Tambahkan dummy data daya (10 hari terakhir)
-    for kamar_id in kamar_ids:
-        for i in range(10):
-            timestamp = now - timedelta(days=i)
-            watt = random.randint(100, 300)
-            db.collection("data_daya").add(
-                {
-                    "KamarID": kamar_id,
-                    "JumlahWatt": watt,
-                    "Timestamp": timestamp,
-                }
-            )
+    # Ambil parameter dari URL, default ke hari ini
+    tanggal_str = request.args.get("tanggal", None)  # format: YYYY-MM-DD
+    try:
+        if tanggal_str:
+            tanggal = datetime.strptime(tanggal_str, "%Y-%m-%d")
+        else:
+            jakarta_tz = pytz.timezone("Asia/Jakarta")
+            tanggal = datetime.now(jakarta_tz)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Format tanggal tidak valid. Gunakan format YYYY-MM-DD"}), 400
 
-    # 2. Tambahkan dummy tagihan (3 tagihan)
-    tagihan_data = [
-        {
-            "KamarID": "6cAqsZboaQ1giiSqeQ4J",
-            "Bulan": "2025-03",
-            "JumlahKWH": 15.2,
-        },
-        {
-            "KamarID": "6cAqsZboaQ1giiSqeQ4J",
-            "Bulan": "2025-04",
-            "JumlahKWH": 12.7,
-        },
-        {
-            "KamarID": "t7jqaBpRQ9S3QgS1DkKJ",
-            "Bulan": "2025-04",
-            "JumlahKWH": 9.5,
-        },
-    ]
-    tarif_per_kwh = 1400
+    db.collection("data_daya").add({
+        "KamarID": kamar_id,
+        "JumlahWatt": watt_besar,
+        "Timestamp": tanggal,
+    })
 
-    for tagihan in tagihan_data:
-        total_tagihan = tagihan["JumlahKWH"] * tarif_per_kwh
-        db.collection("tagihan").add(
-            {
-                "KamarID": tagihan["KamarID"],
-                "Bulan": tagihan["Bulan"],
-                "JumlahKWH": tagihan["JumlahKWH"],
-                "JumlahWattTerpakai": tagihan["JumlahKWH"] * 1000,
-                "TotalTagihan": total_tagihan,
-                "StatusPembayaran": "Belum Dibayar",
-                "Timestamp": now,
-            }
-        )
-
-    return jsonify(
-        {"status": "success", "message": "Dummy data daya & tagihan berhasil dibuat."}
-    )
+    return jsonify({
+        "status": "success",
+        "message": f"Data daya besar untuk tanggal {tanggal.strftime('%Y-%m-%d')} berhasil dibuat.",
+        "kamar_id": kamar_id,
+        "jumlah_watt": watt_besar,
+        "timestamp": tanggal.isoformat(),
+    })
 
 
 if __name__ == "__main__":
