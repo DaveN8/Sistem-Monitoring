@@ -5,7 +5,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.9.0/firebase
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC95VjtoAEvQAXxEEdbxuQSfw5oTIhaxfY",
+  apiKey: "APIKEY",
   authDomain: "sistemdaya.firebaseapp.com",
   projectId: "sistemdaya",
   storageBucket: "sistemdaya.firebasestorage.app",
