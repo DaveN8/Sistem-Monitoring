@@ -10,7 +10,7 @@ import { getAuth,
 
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAu_fXf_EoNpp10WRs7xc2F3fKbla7WAS0",
+    apiKey: "APIKEY",
     authDomain: "simple-firebase-91658.firebaseapp.com",
     projectId: "simple-firebase-91658",
     storageBucket: "simple-firebase-91658.appspot.com",
